@@ -6,6 +6,8 @@ import { LatLng } from 'leaflet';
 import { useStore } from '@/store/useStore';
 import { Polygon } from '@/types';
 import { generateId } from '@/lib/utils';
+import L from "leaflet";
+
 
 export function PolygonDrawer() {
   const { 
