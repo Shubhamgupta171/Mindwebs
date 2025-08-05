@@ -1,8 +1,7 @@
-import { format, subDays, isAfter, differenceInHours, startOfHour, endOfHour } from 'date-fns';
-import { Polygon, DataSource, ColorRule } from '@/types'; 
+import { format, subDays, isAfter, startOfHour } from 'date-fns';
+import type { Polygon, DataSource, ColorRule, TimelineState } from '@/types';
 
 const API_URL = "https://archive-api.open-meteo.com/v1/archive";
-
 
 export async function fetchWeatherData(
   latitude: number,
@@ -11,16 +10,14 @@ export async function fetchWeatherData(
   endDate: Date,
   hourly: string
 ) {
-
   const yesterday = subDays(new Date(), 1);
-  
   const clampedEndDate = isAfter(endDate, yesterday) ? yesterday : endDate;
 
   if (isAfter(startDate, clampedEndDate)) {
-    console.warn("Request start date is after the latest available data. No data will be fetched.");
+    console.warn("Start date is after the latest available data.");
     return null;
   }
-  
+
   const formattedStartDate = format(startDate, 'yyyy-MM-dd');
   const formattedEndDate = format(clampedEndDate, 'yyyy-MM-dd');
 
@@ -47,12 +44,10 @@ export async function fetchWeatherData(
 }
 
 function getAverageValue(apiData: any, field: string, startTime: Date, endTime: Date): number | null {
-  if (!apiData || !apiData.hourly || !apiData.hourly.time || !apiData.hourly[field]) {
-    return null;
-  }
+  if (!apiData?.hourly?.time || !apiData.hourly[field]) return null;
 
   const { time, [field]: values } = apiData.hourly;
-  
+
   const startIndex = time.findIndex((t: string) => !isAfter(startOfHour(new Date(t)), endTime));
   const endIndex = time.findLastIndex((t: string) => !isAfter(startOfHour(new Date(t)), endTime));
 
@@ -68,13 +63,11 @@ function getAverageValue(apiData: any, field: string, startTime: Date, endTime: 
 export async function getPolygonColor(
   polygon: Polygon,
   dataSource: DataSource,
-  timeline: Timeline
+  timeline: TimelineState
 ): Promise<string> {
-  const defaultColor = '#808080'; 
+  const defaultColor = '#808080';
 
-  if (!polygon.dataSource || !dataSource.field) {
-    return defaultColor;
-  }
+  if (!polygon.dataSource || !dataSource.field) return defaultColor;
 
   try {
     const apiData = await fetchWeatherData(
@@ -88,20 +81,18 @@ export async function getPolygonColor(
     if (!apiData) return defaultColor;
 
     const avgValue = getAverageValue(apiData, dataSource.field, timeline.startTime, timeline.endTime);
-
     if (avgValue === null) return defaultColor;
 
-    // Find the first matching color rule
     for (const rule of dataSource.colorRules) {
       if (evaluateRule(avgValue, rule)) {
         return rule.color;
       }
     }
 
-    return defaultColor; 
+    return defaultColor;
   } catch (error) {
     console.error(`Error getting color for polygon ${polygon.id}:`, error);
-    return '#FF0000'; 
+    return '#FF0000'; // fallback error color
   }
 }
 
