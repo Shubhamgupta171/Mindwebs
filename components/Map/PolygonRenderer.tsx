@@ -4,6 +4,8 @@ import React, { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
 import { useStore } from '@/store/useStore';
 import { getPolygonColor } from '@/lib/dataUtils';
+import L from 'leaflet';
+
 
 export function PolygonRenderer() {
   const map = useMap();
